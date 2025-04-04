@@ -1,10 +1,27 @@
 const uploadForm = document.getElementById('uploadForm');
+const generatePromptBtn = document.getElementById('generatePromptBtn');
 const generateImageBtn = document.getElementById('generateImageBtn');
+const imageInput = document.getElementById('imageInput');
 const promptArea = document.getElementById('promptArea');
 const imageCount = document.getElementById('imageCount');
+const imageCountLabel = document.getElementById('imageCountLabel');
 const loading = document.getElementById('loading');
 const results = document.getElementById('results');
 const downloadAllBtn = document.getElementById('downloadAll');
+
+// Get token from URL
+const urlParams = new URLSearchParams(window.location.search);
+const token = urlParams.get('token');
+
+// Update slider label dynamically
+imageCount.addEventListener('input', () => {
+    imageCountLabel.textContent = imageCount.value;
+});
+
+// Enable Generate Prompt button when an image is selected
+imageInput.addEventListener('change', () => {
+    generatePromptBtn.disabled = !imageInput.files.length;
+});
 
 uploadForm.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -15,7 +32,7 @@ uploadForm.addEventListener('submit', async (event) => {
     results.innerHTML = '';
 
     try {
-        const response = await fetch('/api/generate-prompt', {
+        const response = await fetch(`/api/generate-prompt?token=${token}`, {
             method: 'POST',
             body: formData
         });
@@ -27,6 +44,7 @@ uploadForm.addEventListener('submit', async (event) => {
         const { prompt } = await response.json();
         promptArea.value = prompt;
         promptArea.style.display = 'block';
+        generateImageBtn.disabled = false; // Enable Generate Image button
     } catch (error) {
         console.error('Error:', error);
         alert('An error occurred while generating the prompt. Please try again.');
@@ -44,17 +62,12 @@ generateImageBtn.addEventListener('click', async () => {
         return;
     }
 
-    if (count < 1 || count > 4) {
-        alert('Please select a number between 1 and 4.');
-        return;
-    }
-
     loading.style.display = 'block';
     results.innerHTML = '';
     downloadAllBtn.style.display = 'none';
 
     try {
-        const response = await fetch('/api/generate-images', {
+        const response = await fetch(`/api/generate-images?token=${token}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ prompt, count })

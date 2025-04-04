@@ -14,11 +14,13 @@ function authenticateToken(req, res, next) {
     next();
 }
 
-app.use(authenticateToken);
+// Serve static files first, no authentication required
 app.use(express.static(path.join(__dirname, '../public')));
-app.use('/api', apiRoutes);
 
-app.get('/', (req, res) => {
+// Apply authentication to specific routes
+app.use('/api', authenticateToken, apiRoutes);
+
+app.get('/', authenticateToken, (req, res) => {
     res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 

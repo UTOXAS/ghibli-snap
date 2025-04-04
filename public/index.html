@@ -56,8 +56,13 @@
             transition: background-color 0.2s;
         }
 
-        .btn:hover {
+        .btn:hover:not(:disabled) {
             background-color: #48bb78;
+        }
+
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
         }
 
         #promptArea {
@@ -74,11 +79,37 @@
         }
 
         #imageCount {
+            width: 200px;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 15px;
             border: 3px solid #000;
-            padding: 10px;
-            width: 100px;
-            font-family: 'Courier New', Courier, monospace;
+            background: #fff;
+            outline: none;
             margin-top: 10px;
+        }
+
+        #imageCount::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            background: #ff6f61;
+            border: 3px solid #000;
+            cursor: pointer;
+        }
+
+        #imageCount::-moz-range-thumb {
+            width: 25px;
+            height: 25px;
+            background: #ff6f61;
+            border: 3px solid #000;
+            cursor: pointer;
+        }
+
+        #imageCountLabel {
+            margin-left: 10px;
+            font-size: 1rem;
         }
 
         #loading {
@@ -121,7 +152,7 @@
             background-color: #ffd700;
         }
 
-        #downloadAll:hover {
+        #downloadAll:hover:not(:disabled) {
             background-color: #ffcc00;
         }
 
@@ -149,14 +180,14 @@
             <div class="form-group">
                 <input type="file" class="form-control" id="imageInput" name="image" accept="image/*" required>
             </div>
-            <button type="submit" class="btn" id="generatePromptBtn">Generate Prompt</button>
+            <button type="submit" class="btn" id="generatePromptBtn" disabled>Generate Prompt</button>
         </form>
         <textarea id="promptArea" placeholder="Generated prompt will appear here..."></textarea>
         <div class="form-group">
-            <label for="imageCount">Number of Images (1-4):</label>
-            <input type="number" id="imageCount" min="1" max="4" value="1">
+            <label for="imageCount">Number of Images (1-4): <span id="imageCountLabel">1</span></label>
+            <input type="range" id="imageCount" min="1" max="4" value="1">
         </div>
-        <button class="btn" id="generateImageBtn">Generate Images</button>
+        <button class="btn" id="generateImageBtn" disabled>Generate Images</button>
         <div id="loading">Processing... Please wait.</div>
         <div id="results"></div>
         <button class="btn" id="downloadAll" style="display: none;">Download All</button>
