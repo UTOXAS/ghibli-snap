@@ -66,12 +66,17 @@ async function generateImage(generateNewPrompt) {
         promptSection.style.display = 'block';
         regenerateBtn.disabled = false;
 
-        // Display image
+        // Display image with download button
         const img = document.createElement('img');
         img.src = `data:image/png;base64,${base64}`;
+        const downloadBtn = document.createElement('button');
+        downloadBtn.textContent = 'Download Image';
+        downloadBtn.className = 'btn download-btn';
+        downloadBtn.onclick = () => downloadImage(img.src, 'ghibli-snap-image.png');
         const div = document.createElement('div');
         div.className = 'result-item';
         div.appendChild(img);
+        div.appendChild(downloadBtn);
         results.appendChild(div);
     } catch (error) {
         console.error('Error:', error);
@@ -80,4 +85,13 @@ async function generateImage(generateNewPrompt) {
     } finally {
         loading.style.display = 'none';
     }
+}
+
+function downloadImage(url, filename) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
 }

@@ -44,40 +44,63 @@ The generated prompt should capture every single detail of the image, no matter 
 The overall mood of the image should be serene and contemplative, reminiscent of scenes from films like 'Whisper of the Heart' or 'Only Yesterday'. The image should evoke a sense of warmth and familiarity, with a focus on capturing the character's personality and the quiet beauty of the moment. The style should emphasize soft, hand-painted textures, with a gentle color palette dominated by warm tones like soft oranges, golden yellows, and gentle browns, reflecting a cozy, inviting aesthetic. The composition should be natural and unposed, as if capturing a fleeting, candid moment of everyday life. The scene should be filled with a soft, diffused glow, creating a gentle, inviting atmosphere, as if light is being filtered through a warm medium. This glow should enhance the sense of peacefulness and nostalgia. Ensure that every aspect of the scene, including lighting and shadows, is thoroughly described in the generated prompt.`;
 
 router.post('/generate', upload.single('image'), async (req, res) => {
-    let filePath;
+    let filePath = null;
     try {
         const existingPrompt = req.body.prompt;
-        if (!existingPrompt && !req.file) {
-            return res.status(400).send('No image file uploaded or prompt provided');
+
+        // If an existing prompt is provided (regenerate case), skip file upload logic
+        if (existingPrompt) {
+            const imageSession = model.startChat({ generationConfig });
+            const imageResult = await imageSession.sendMessage(existingPrompt);
+            const candidates = imageResult.response.candidates;
+
+            let imageBuffer;
+            for (const candidate of candidates) {
+                for (const part of candidate.content.parts) {
+                    if (part.inlineData && part.inlineData.mimeType.startsWith('image/')) {
+                        imageBuffer = Buffer.from(part.inlineData.data, 'base64');
+                        break;
+                    }
+                }
+                if (imageBuffer) break;
+            }
+
+            if (!imageBuffer) {
+                throw new Error('No image generated');
+            }
+
+            return res.json({ image: imageBuffer.toString('base64'), prompt: existingPrompt });
         }
 
-        let generatedPrompt = existingPrompt;
-        if (!existingPrompt) {
-            filePath = req.file.path;
-            const mimeType = mime.lookup(filePath) || 'image/jpeg';
-            const uploadedFile = await uploadToGemini(filePath, mimeType);
+        // If no existing prompt, expect a file upload (generate case)
+        if (!req.file) {
+            return res.status(400).send('No image file uploaded');
+        }
 
-            const promptSession = model.startChat({
-                generationConfig,
-                history: [
-                    {
-                        role: "user",
-                        parts: [
-                            {
-                                fileData: {
-                                    mimeType: uploadedFile.mimeType,
-                                    fileUri: uploadedFile.uri,
-                                },
+        filePath = req.file.path; // Set filePath only for new uploads
+        const mimeType = mime.lookup(filePath) || 'image/jpeg';
+        const uploadedFile = await uploadToGemini(filePath, mimeType);
+
+        const promptSession = model.startChat({
+            generationConfig,
+            history: [
+                {
+                    role: "user",
+                    parts: [
+                        {
+                            fileData: {
+                                mimeType: uploadedFile.mimeType,
+                                fileUri: uploadedFile.uri,
                             },
-                            { text: PROMPT_TEMPLATE },
-                        ],
-                    },
-                ],
-            });
+                        },
+                        { text: PROMPT_TEMPLATE },
+                    ],
+                },
+            ],
+        });
 
-            const promptResult = await promptSession.sendMessage("Generate the prompt as requested.");
-            generatedPrompt = promptResult.response.text();
-        }
+        const promptResult = await promptSession.sendMessage("Generate the prompt as requested.");
+        const generatedPrompt = promptResult.response.text();
 
         const imageSession = model.startChat({ generationConfig });
         const imageResult = await imageSession.sendMessage(generatedPrompt);
@@ -104,7 +127,12 @@ router.post('/generate', upload.single('image'), async (req, res) => {
         res.status(500).send(`Failed to generate image: ${error.message}`);
     } finally {
         if (filePath) {
-            await fs.unlink(filePath).catch(err => console.error('Cleanup error:', err));
+            try {
+                await fs.unlink(filePath);
+                console.log(`Successfully deleted temporary file: ${filePath}`);
+            } catch (cleanupError) {
+                console.error(`Failed to delete temporary file ${filePath}:`, cleanupError);
+            }
         }
     }
 });

@@ -1,5 +1,5 @@
 body {
-    background-color: #f9ece6; /* Light peach background */
+    background-color: #E9ECEF; /* Light Gray */
     font-family: 'Poppins', sans-serif;
     color: #333;
     margin: 0;
@@ -10,23 +10,23 @@ body {
     max-width: 800px;
     margin: 0 auto;
     padding: 30px;
-    background: #fff7f0; /* Off-white with a warm tint */
-    border: 6px solid #ff8c94; /* Bold pastel pink border */
-    box-shadow: 12px 12px 0 #b8e1dd; /* Mint shadow */
+    background: #FFFFFF; /* White */
+    border: 6px solid #6B728E; /* Slate Blue */
+    box-shadow: 12px 12px 0 #9CA3AF; /* Cool Gray shadow */
     border-radius: 10px;
 }
 
 h1 {
     font-size: 2.5rem;
-    color: #ff6f61; /* Coral */
-    text-shadow: 4px 4px 0 #ffcccb; /* Light pink shadow */
+    color: #E76F51; /* Coral */
+    text-shadow: 4px 4px 0 #F4A261; /* Warm Orange shadow */
     margin-bottom: 15px;
     font-weight: 600;
 }
 
 p {
     font-size: 1.1rem;
-    color: #666;
+    color: #6B728E; /* Slate Blue */
     margin-bottom: 25px;
 }
 
@@ -35,11 +35,11 @@ p {
 }
 
 #imageInput {
-    border: 4px solid #a2cffe; /* Light blue */
+    border: 4px solid #F4A261; /* Warm Orange */
     padding: 12px;
     background: #fff;
     border-radius: 8px;
-    box-shadow: 6px 6px 0 #d4a5a5; /* Soft red shadow */
+    box-shadow: 6px 6px 0 #9CA3AF; /* Cool Gray shadow */
     width: 100%;
     font-size: 1rem;
 }
@@ -54,7 +54,7 @@ p {
     padding: 12px 25px;
     font-size: 1rem;
     font-weight: 600;
-    border: 4px solid #000;
+    border: 4px solid #6B728E; /* Slate Blue */
     border-radius: 8px;
     cursor: pointer;
     transition: transform 0.2s, background-color 0.2s;
@@ -65,27 +65,27 @@ p {
 }
 
 .btn:disabled {
-    background-color: #e0e0e0;
+    background-color: #D1D5DB; /* Lighter gray */
     cursor: not-allowed;
-    border-color: #999;
+    border-color: #9CA3AF; /* Cool Gray */
 }
 
 .generate-btn {
-    background-color: #ffcccb; /* Light pink */
-    color: #000;
+    background-color: #F4A261; /* Warm Orange */
+    color: #fff;
 }
 
 .generate-btn:hover:not(:disabled) {
-    background-color: #ff9999; /* Brighter pink */
+    background-color: #E76F51; /* Coral */
 }
 
 .regenerate-btn {
-    background-color: #b8e1dd; /* Mint */
-    color: #000;
+    background-color: #6B728E; /* Slate Blue */
+    color: #fff;
 }
 
 .regenerate-btn:hover:not(:disabled) {
-    background-color: #89d4cf; /* Brighter mint */
+    background-color: #4B5563; /* Darker Slate */
 }
 
 [data-tooltip] {
@@ -98,15 +98,15 @@ p {
     bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
-    background: #fff7f0;
-    border: 3px solid #ff8c94;
+    background: #FFFFFF;
+    border: 3px solid #6B728E; /* Slate Blue */
     padding: 5px 10px;
     font-size: 0.9rem;
     color: #333;
     white-space: nowrap;
     z-index: 10;
     border-radius: 5px;
-    box-shadow: 4px 4px 0 #b8e1dd;
+    box-shadow: 4px 4px 0 #9CA3AF; /* Cool Gray */
 }
 
 .prompt-section {
@@ -116,29 +116,30 @@ p {
 #promptOutput {
     width: 100%;
     height: 100px;
-    border: 4px solid #d4a5a5; /* Soft red */
+    border: 4px solid #9CA3AF; /* Cool Gray */
     background: #fff;
     padding: 10px;
     font-size: 1rem;
     color: #333;
     resize: none;
     border-radius: 8px;
-    box-shadow: 6px 6px 0 #a2cffe; /* Light blue shadow */
+    box-shadow: 6px 6px 0 #F4A261; /* Warm Orange shadow */
 }
 
 .copy-btn {
-    background-color: #fce4a6; /* Soft yellow */
+    background-color: #E76F51; /* Coral */
     margin-top: 10px;
+    color: #fff;
 }
 
 .copy-btn:hover:not(:disabled) {
-    background-color: #ffd966; /* Brighter yellow */
+    background-color: #F4A261; /* Warm Orange */
 }
 
 #loading {
     display: none;
     font-size: 1.2rem;
-    color: #ff6f61;
+    color: #E76F51; /* Coral */
     margin-top: 20px;
     font-weight: 600;
 }
@@ -146,9 +147,9 @@ p {
 #error {
     display: none;
     font-size: 1.1rem;
-    color: #ff4444;
+    color: #E76F51; /* Coral */
     margin-top: 20px;
-    border: 3px solid #ff4444;
+    border: 3px solid #E76F51;
     padding: 10px;
     border-radius: 5px;
 }
@@ -158,18 +159,28 @@ p {
 }
 
 .result-item {
-    border: 5px solid #ff8c94; /* Pastel pink */
+    border: 5px solid #6B728E; /* Slate Blue */
     padding: 15px;
     background: #fff;
-    box-shadow: 8px 8px 0 #b8e1dd; /* Mint shadow */
+    box-shadow: 8px 8px 0 #9CA3AF; /* Cool Gray shadow */
     border-radius: 10px;
 }
 
 .result-item img {
     max-width: 300px;
     display: block;
-    border: 3px solid #a2cffe; /* Light blue */
+    border: 3px solid #F4A261; /* Warm Orange */
     border-radius: 5px;
+}
+
+.download-btn {
+    margin-top: 10px;
+    background-color: #F4A261; /* Warm Orange */
+    color: #fff;
+}
+
+.download-btn:hover:not(:disabled) {
+    background-color: #E76F51; /* Coral */
 }
 
 @media (max-width: 600px) {
