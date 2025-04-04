@@ -5,13 +5,12 @@ const path = require('path');
 const mime = require('mime-types');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { GoogleAIFileManager } = require('@google/generative-ai/server');
+require('dotenv').config(); // Load .env file locally
 
 const router = express.Router();
 
 // Configure multer for file uploads
 const upload = multer({ dest: 'uploads/' });
-
-require('dotenv').config();
 
 // Securely access API key from environment variables
 const apiKey = process.env.GEMINI_API_KEY;
@@ -30,7 +29,7 @@ const generationConfig = {
     topK: 40,
     maxOutputTokens: 8192,
     responseModalities: ["image", "text"],
-    responseMimeType: "image/png" // Expecting an image output
+    responseMimeType: "text/plain" // Match the example
 };
 
 // Function to upload file to Gemini
@@ -79,9 +78,13 @@ router.post('/generate', upload.single('image'), async (req, res) => {
             ],
         });
 
-        // Generate the image directly
-        const result = await chatSession.sendMessage("Generate the image based on the prompt you created.");
-        const candidates = result.response.candidates;
+        // Step 1: Generate the text prompt
+        const promptResult = await chatSession.sendMessage("Generate the prompt as requested.");
+        const generatedPrompt = promptResult.response.text();
+
+        // Step 2: Generate the image using the prompt
+        const imageResult = await chatSession.sendMessage(generatedPrompt);
+        const candidates = imageResult.response.candidates;
 
         // Extract the generated image
         let imageBuffer;
