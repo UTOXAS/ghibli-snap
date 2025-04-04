@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ghibli Snap</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #f0f4f8;
+            font-family: 'Courier New', Courier, monospace;
+            color: #2d3748;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 30px;
+            background: #ffffff;
+            border: 4px solid #000000;
+            box-shadow: 8px 8px 0 #000000;
+            border-radius: 0;
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            color: #ff6f61;
+            text-shadow: 2px 2px 0 #000000;
+            margin-bottom: 20px;
+        }
+
+        p {
+            font-size: 1.2rem;
+            color: #4a5568;
+        }
+
+        .btn-primary {
+            background-color: #68d391;
+            border: 3px solid #000000;
+            color: #000000;
+            font-weight: bold;
+            padding: 10px 20px;
+        }
+
+        .btn-primary:hover {
+            background-color: #48bb78;
+        }
+
+        #imageInput {
+            border: 2px solid #000000;
+            padding: 10px;
+        }
+
+        #resultImage {
+            max-width: 100%;
+            border: 3px solid #000000;
+            margin-top: 20px;
+            display: none;
+        }
+
+        #loading {
+            display: none;
+            font-size: 1.5rem;
+            color: #ff6f61;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Ghibli Snap</h1>
+        <p>Upload an image to transform it into Studio Ghibli anime style!</p>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div class="mb-3">
+                <input type="file" class="form-control" id="imageInput" name="image" accept="image/*" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Generate</button>
+        </form>
+        <div id="loading">Generating... Please wait.</div>
+        <img id="resultImage" alt="Generated Image">
+    </div>
+    <script src="/js/main.js"></script>
+</body>
+
+</html>
