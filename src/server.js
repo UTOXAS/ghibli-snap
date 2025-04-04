@@ -9,16 +9,7 @@ const SECRET_TOKEN = process.env.SECRET_TOKEN;
 // Middleware to parse JSON bodies
 app.use(express.json());
 
-// Serve static files first, no authentication required
-app.use(express.static(path.join(__dirname, '../public')));
-
-// Apply authentication to specific routes
-app.use('/api', authenticateToken, apiRoutes);
-
-app.get('/', authenticateToken, (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/index.html'));
-});
-
+// Apply authentication to API routes only
 function authenticateToken(req, res, next) {
     const token = req.query.token;
     if (!token || token !== SECRET_TOKEN) {
@@ -26,6 +17,8 @@ function authenticateToken(req, res, next) {
     }
     next();
 }
+
+app.use('/api', authenticateToken, apiRoutes);
 
 app.use((err, req, res, next) => {
     console.error(err.stack);
