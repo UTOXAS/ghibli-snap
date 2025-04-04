@@ -4,20 +4,43 @@ const fs = require('fs').promises;
 const path = require('path');
 const mime = require('mime-types');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleAIFileManager } = require('@google/generative-ai/server');
 
 const router = express.Router();
 
 // Configure multer for file uploads
 const upload = multer({ dest: 'uploads/' });
 
+require('dotenv').config();
+
 // Securely access API key from environment variables
 const apiKey = process.env.GEMINI_API_KEY;
+if (!apiKey) throw new Error('GEMINI_API_KEY is not set');
 const genAI = new GoogleGenerativeAI(apiKey);
+const fileManager = new GoogleAIFileManager(apiKey);
 
 // Initialize Gemini model
 const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-flash", // Use a stable, free-tier model
+    model: "gemini-2.0-flash-exp-image-generation",
 });
+
+const generationConfig = {
+    temperature: 1,
+    topP: 0.95,
+    topK: 40,
+    maxOutputTokens: 8192,
+    responseModalities: ["image", "text"],
+    responseMimeType: "image/png" // Expecting an image output
+};
+
+// Function to upload file to Gemini
+async function uploadToGemini(filePath, mimeType) {
+    const uploadResult = await fileManager.uploadFile(filePath, {
+        mimeType,
+        displayName: path.basename(filePath),
+    });
+    return uploadResult.file;
+}
 
 // Prompt template
 const PROMPT_TEMPLATE = `Please generate a detailed text prompt for an AI image generator. The generated prompt must begin with the phrase 'Generate an image of...'. This prompt should describe an image in enough detail to be recreated in the classic Studio Ghibli anime style. The generated prompt must explicitly include both 'Studio Ghibli' and 'anime'. Avoid referencing any specific original image directly. Instead, provide a comprehensive description of the scene, characters, and overall aesthetic, as if the AI has no visual reference.
@@ -29,51 +52,64 @@ The overall mood of the image should be serene and contemplative, reminiscent of
 
 // API endpoint to handle image upload and generation
 router.post('/generate', upload.single('image'), async (req, res) => {
+    let filePath;
     try {
-        const filePath = req.file.path;
+        filePath = req.file.path;
         const mimeType = mime.lookup(filePath) || 'image/jpeg';
 
         // Upload file to Gemini
-        const fileData = await fs.readFile(filePath);
-        const uploadedFile = {
-            uri: `data:${mimeType};base64,${fileData.toString('base64')}`,
-            mimeType
-        };
+        const uploadedFile = await uploadToGemini(filePath, mimeType);
 
-        // Step 1: Generate the text prompt
-        const promptResult = await model.generateContent([
-            {
-                fileData: {
-                    mimeType: uploadedFile.mimeType,
-                    fileUri: uploadedFile.uri
+        // Start chat session
+        const chatSession = model.startChat({
+            generationConfig,
+            history: [
+                {
+                    role: "user",
+                    parts: [
+                        {
+                            fileData: {
+                                mimeType: uploadedFile.mimeType,
+                                fileUri: uploadedFile.uri,
+                            },
+                        },
+                        { text: PROMPT_TEMPLATE },
+                    ],
+                },
+            ],
+        });
+
+        // Generate the image directly
+        const result = await chatSession.sendMessage("Generate the image based on the prompt you created.");
+        const candidates = result.response.candidates;
+
+        // Extract the generated image
+        let imageBuffer;
+        for (const candidate of candidates) {
+            for (const part of candidate.content.parts) {
+                if (part.inlineData && part.inlineData.mimeType.startsWith('image/')) {
+                    imageBuffer = Buffer.from(part.inlineData.data, 'base64');
+                    res.set('Content-Type', part.inlineData.mimeType);
+                    break;
                 }
-            },
-            { text: PROMPT_TEMPLATE }
-        ]);
-        const generatedPrompt = promptResult.response.text();
+            }
+            if (imageBuffer) break;
+        }
 
-        // Step 2: Generate the image from the prompt
-        const imageResult = await model.generateContent([
-            { text: generatedPrompt }
-        ]);
-
-        // Extract the generated image (assuming base64 response)
-        const imagePart = imageResult.response.candidates[0].content.parts.find(part => part.inlineData);
-        if (!imagePart || !imagePart.inlineData) {
+        if (!imageBuffer) {
             throw new Error('No image generated');
         }
 
-        const imageBuffer = Buffer.from(imagePart.inlineData.data, 'base64');
-
-        // Clean up temporary file
-        await fs.unlink(filePath);
-
         // Send the image as a response
-        res.set('Content-Type', imagePart.inlineData.mimeType);
         res.send(imageBuffer);
     } catch (error) {
         console.error('Error in /api/generate:', error);
-        res.status(500).send('Internal Server Error');
+        res.status(500).send(`Internal Server Error: ${error.message}`);
+    } finally {
+        // Clean up temporary file
+        if (filePath) {
+            await fs.unlink(filePath).catch(err => console.error('Cleanup error:', err));
+        }
     }
 });
 
