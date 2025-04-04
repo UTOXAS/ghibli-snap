@@ -1,11 +1,10 @@
 const uploadForm = document.getElementById('uploadForm');
-const generatePromptBtn = document.getElementById('generatePromptBtn');
-const generateImageBtn = document.getElementById('generateImageBtn');
+const generateBtn = document.getElementById('generateBtn');
 const imageInput = document.getElementById('imageInput');
-const promptArea = document.getElementById('promptArea');
 const imageCount = document.getElementById('imageCount');
 const imageCountLabel = document.getElementById('imageCountLabel');
 const loading = document.getElementById('loading');
+const errorDiv = document.getElementById('error');
 const results = document.getElementById('results');
 const downloadAllBtn = document.getElementById('downloadAll');
 
@@ -18,63 +17,30 @@ imageCount.addEventListener('input', () => {
     imageCountLabel.textContent = imageCount.value;
 });
 
-// Enable Generate Prompt button when an image is selected
+// Enable Generate button when an image is selected
 imageInput.addEventListener('change', () => {
-    generatePromptBtn.disabled = !imageInput.files.length;
+    generateBtn.disabled = !imageInput.files.length;
 });
 
 uploadForm.addEventListener('submit', async (event) => {
     event.preventDefault();
 
     const formData = new FormData(event.target);
+    formData.append('count', imageCount.value);
     loading.style.display = 'block';
-    promptArea.style.display = 'none';
+    errorDiv.style.display = 'none';
     results.innerHTML = '';
+    downloadAllBtn.style.display = 'none';
 
     try {
-        const response = await fetch(`/api/generate-prompt?token=${token}`, {
+        const response = await fetch(`/api/generate?token=${token}`, {
             method: 'POST',
             body: formData
         });
 
         if (!response.ok) {
-            throw new Error('Failed to generate prompt');
-        }
-
-        const { prompt } = await response.json();
-        promptArea.value = prompt;
-        promptArea.style.display = 'block';
-        generateImageBtn.disabled = false; // Enable Generate Image button
-    } catch (error) {
-        console.error('Error:', error);
-        alert('An error occurred while generating the prompt. Please try again.');
-    } finally {
-        loading.style.display = 'none';
-    }
-});
-
-generateImageBtn.addEventListener('click', async () => {
-    const prompt = promptArea.value.trim();
-    const count = parseInt(imageCount.value, 10);
-
-    if (!prompt) {
-        alert('Please generate a prompt first.');
-        return;
-    }
-
-    loading.style.display = 'block';
-    results.innerHTML = '';
-    downloadAllBtn.style.display = 'none';
-
-    try {
-        const response = await fetch(`/api/generate-images?token=${token}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt, count })
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to generate images');
+            const errorText = await response.text();
+            throw new Error(errorText || 'Failed to generate images');
         }
 
         const blobs = await response.json();
@@ -98,7 +64,8 @@ generateImageBtn.addEventListener('click', async () => {
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('An error occurred while generating the images. Please try again.');
+        errorDiv.textContent = `Error: ${error.message}`;
+        errorDiv.style.display = 'block';
     } finally {
         loading.style.display = 'none';
     }
