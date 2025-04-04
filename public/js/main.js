@@ -39,18 +39,29 @@ copyBtn.addEventListener('click', () => {
 });
 
 async function generateImage(generateNewPrompt) {
-    const formData = new FormData(uploadForm);
-    if (!generateNewPrompt) formData.append('prompt', currentPrompt);
-
     loading.style.display = 'block';
     errorDiv.style.display = 'none';
     results.innerHTML = '';
 
     try {
-        const response = await fetch(`/api/generate?token=${token}`, {
-            method: 'POST',
-            body: formData
-        });
+        let response;
+        if (generateNewPrompt) {
+            // Generate case: Send image file
+            const formData = new FormData(uploadForm);
+            response = await fetch(`/api/generate?token=${token}`, {
+                method: 'POST',
+                body: formData
+            });
+        } else {
+            // Regenerate case: Send only the prompt
+            response = await fetch(`/api/generate?token=${token}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ prompt: currentPrompt })
+            });
+        }
 
         if (!response.ok) {
             const errorText = await response.text();

@@ -6,13 +6,8 @@ require('dotenv').config();
 const app = express();
 const SECRET_TOKEN = process.env.SECRET_TOKEN;
 
-function authenticateToken(req, res, next) {
-    const token = req.query.token;
-    if (!token || token !== SECRET_TOKEN) {
-        return res.status(403).send('Access Denied: Invalid or missing token');
-    }
-    next();
-}
+// Middleware to parse JSON bodies
+app.use(express.json());
 
 // Serve static files first, no authentication required
 app.use(express.static(path.join(__dirname, '../public')));
@@ -23,6 +18,14 @@ app.use('/api', authenticateToken, apiRoutes);
 app.get('/', authenticateToken, (req, res) => {
     res.sendFile(path.join(__dirname, '../public/index.html'));
 });
+
+function authenticateToken(req, res, next) {
+    const token = req.query.token;
+    if (!token || token !== SECRET_TOKEN) {
+        return res.status(403).send('Access Denied: Invalid or missing token');
+    }
+    next();
+}
 
 app.use((err, req, res, next) => {
     console.error(err.stack);

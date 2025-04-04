@@ -48,7 +48,7 @@ router.post('/generate', upload.single('image'), async (req, res) => {
     try {
         const existingPrompt = req.body.prompt;
 
-        // If an existing prompt is provided (regenerate case), skip file upload logic
+        // Regenerate case: Use existing prompt, no file upload needed
         if (existingPrompt) {
             const imageSession = model.startChat({ generationConfig });
             const imageResult = await imageSession.sendMessage(existingPrompt);
@@ -72,12 +72,12 @@ router.post('/generate', upload.single('image'), async (req, res) => {
             return res.json({ image: imageBuffer.toString('base64'), prompt: existingPrompt });
         }
 
-        // If no existing prompt, expect a file upload (generate case)
+        // Generate case: Expect a file upload
         if (!req.file) {
             return res.status(400).send('No image file uploaded');
         }
 
-        filePath = req.file.path; // Set filePath only for new uploads
+        filePath = req.file.path;
         const mimeType = mime.lookup(filePath) || 'image/jpeg';
         const uploadedFile = await uploadToGemini(filePath, mimeType);
 
@@ -126,12 +126,13 @@ router.post('/generate', upload.single('image'), async (req, res) => {
         console.error('Error in /api/generate:', error);
         res.status(500).send(`Failed to generate image: ${error.message}`);
     } finally {
-        if (filePath) {
+        // Clean up any uploaded file
+        if (req.file && req.file.path) {
             try {
-                await fs.unlink(filePath);
-                console.log(`Successfully deleted temporary file: ${filePath}`);
+                await fs.unlink(req.file.path);
+                console.log(`Successfully deleted temporary file: ${req.file.path}`);
             } catch (cleanupError) {
-                console.error(`Failed to delete temporary file ${filePath}:`, cleanupError);
+                console.error(`Failed to delete temporary file ${req.file.path}:`, cleanupError);
             }
         }
     }
