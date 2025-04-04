@@ -1,36 +1,50 @@
 const uploadForm = document.getElementById('uploadForm');
 const generateBtn = document.getElementById('generateBtn');
+const regenerateBtn = document.getElementById('regenerateBtn');
 const imageInput = document.getElementById('imageInput');
-const imageCount = document.getElementById('imageCount');
-const imageCountLabel = document.getElementById('imageCountLabel');
 const loading = document.getElementById('loading');
 const errorDiv = document.getElementById('error');
 const results = document.getElementById('results');
-const downloadAllBtn = document.getElementById('downloadAll');
+const promptSection = document.getElementById('promptSection');
+const promptOutput = document.getElementById('promptOutput');
+const copyBtn = document.getElementById('copyBtn');
 
 // Get token from URL
 const urlParams = new URLSearchParams(window.location.search);
 const token = urlParams.get('token');
 
-// Update slider label dynamically
-imageCount.addEventListener('input', () => {
-    imageCountLabel.textContent = imageCount.value;
-});
+let currentPrompt = '';
 
 // Enable Generate button when an image is selected
 imageInput.addEventListener('change', () => {
     generateBtn.disabled = !imageInput.files.length;
+    regenerateBtn.disabled = true; // Reset Regenerate state
+    promptSection.style.display = 'none';
+    results.innerHTML = '';
 });
 
 uploadForm.addEventListener('submit', async (event) => {
     event.preventDefault();
+    await generateImage(true); // Generate new prompt and image
+});
 
-    const formData = new FormData(event.target);
-    formData.append('count', imageCount.value);
+regenerateBtn.addEventListener('click', async () => {
+    await generateImage(false); // Use existing prompt
+});
+
+copyBtn.addEventListener('click', () => {
+    navigator.clipboard.writeText(promptOutput.value)
+        .then(() => alert('Prompt copied to clipboard!'))
+        .catch(err => console.error('Failed to copy:', err));
+});
+
+async function generateImage(generateNewPrompt) {
+    const formData = new FormData(uploadForm);
+    if (!generateNewPrompt) formData.append('prompt', currentPrompt);
+
     loading.style.display = 'block';
     errorDiv.style.display = 'none';
     results.innerHTML = '';
-    downloadAllBtn.style.display = 'none';
 
     try {
         const response = await fetch(`/api/generate?token=${token}`, {
@@ -40,28 +54,25 @@ uploadForm.addEventListener('submit', async (event) => {
 
         if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(errorText || 'Failed to generate images');
+            throw new Error(errorText || 'Failed to generate image');
         }
 
-        const blobs = await response.json();
-        blobs.forEach((base64, index) => {
-            const img = document.createElement('img');
-            img.src = `data:image/png;base64,${base64}`;
-            const downloadBtn = document.createElement('button');
-            downloadBtn.textContent = `Download Image ${index + 1}`;
-            downloadBtn.className = 'btn download-btn';
-            downloadBtn.onclick = () => downloadImage(img.src, `ghibli-image-${index + 1}.png`);
-            const div = document.createElement('div');
-            div.className = 'result-item';
-            div.appendChild(img);
-            div.appendChild(downloadBtn);
-            results.appendChild(div);
-        });
+        const data = await response.json();
+        const base64 = data.image;
+        currentPrompt = data.prompt;
 
-        if (blobs.length > 1) {
-            downloadAllBtn.style.display = 'block';
-            downloadAllBtn.onclick = () => downloadAllImages(blobs);
-        }
+        // Display prompt
+        promptOutput.value = currentPrompt;
+        promptSection.style.display = 'block';
+        regenerateBtn.disabled = false;
+
+        // Display image
+        const img = document.createElement('img');
+        img.src = `data:image/png;base64,${base64}`;
+        const div = document.createElement('div');
+        div.className = 'result-item';
+        div.appendChild(img);
+        results.appendChild(div);
     } catch (error) {
         console.error('Error:', error);
         errorDiv.textContent = `Error: ${error.message}`;
@@ -69,20 +80,4 @@ uploadForm.addEventListener('submit', async (event) => {
     } finally {
         loading.style.display = 'none';
     }
-});
-
-function downloadImage(url, filename) {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-}
-
-function downloadAllImages(blobs) {
-    blobs.forEach((base64, index) => {
-        const url = `data:image/png;base64,${base64}`;
-        downloadImage(url, `ghibli-image-${index + 1}.png`);
-    });
 }

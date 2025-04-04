@@ -46,71 +46,62 @@ The overall mood of the image should be serene and contemplative, reminiscent of
 router.post('/generate', upload.single('image'), async (req, res) => {
     let filePath;
     try {
-        if (!req.file) {
-            return res.status(400).send('No image file uploaded');
+        const existingPrompt = req.body.prompt;
+        if (!existingPrompt && !req.file) {
+            return res.status(400).send('No image file uploaded or prompt provided');
         }
 
-        filePath = req.file.path;
-        const mimeType = mime.lookup(filePath) || 'image/jpeg';
-        const count = parseInt(req.body.count, 10);
-        if (!count || count < 1 || count > 4) {
-            return res.status(400).send('Invalid image count. Must be between 1 and 4');
-        }
+        let generatedPrompt = existingPrompt;
+        if (!existingPrompt) {
+            filePath = req.file.path;
+            const mimeType = mime.lookup(filePath) || 'image/jpeg';
+            const uploadedFile = await uploadToGemini(filePath, mimeType);
 
-        // Upload image to Gemini
-        const uploadedFile = await uploadToGemini(filePath, mimeType);
-
-        // Generate prompt
-        const promptSession = model.startChat({
-            generationConfig,
-            history: [
-                {
-                    role: "user",
-                    parts: [
-                        {
-                            fileData: {
-                                mimeType: uploadedFile.mimeType,
-                                fileUri: uploadedFile.uri,
+            const promptSession = model.startChat({
+                generationConfig,
+                history: [
+                    {
+                        role: "user",
+                        parts: [
+                            {
+                                fileData: {
+                                    mimeType: uploadedFile.mimeType,
+                                    fileUri: uploadedFile.uri,
+                                },
                             },
-                        },
-                        { text: PROMPT_TEMPLATE },
-                    ],
-                },
-            ],
-        });
+                            { text: PROMPT_TEMPLATE },
+                        ],
+                    },
+                ],
+            });
 
-        const promptResult = await promptSession.sendMessage("Generate the prompt as requested.");
-        const generatedPrompt = promptResult.response.text();
-
-        // Generate images
-        const imageSession = model.startChat({ generationConfig });
-        const images = [];
-
-        for (let i = 0; i < count; i++) {
-            const imageResult = await imageSession.sendMessage(generatedPrompt);
-            const candidates = imageResult.response.candidates;
-
-            let imageBuffer;
-            for (const candidate of candidates) {
-                for (const part of candidate.content.parts) {
-                    if (part.inlineData && part.inlineData.mimeType.startsWith('image/')) {
-                        imageBuffer = Buffer.from(part.inlineData.data, 'base64');
-                        images.push(imageBuffer.toString('base64'));
-                        break;
-                    }
-                }
-                if (imageBuffer) break;
-            }
-
-            if (!imageBuffer) {
-                throw new Error('No image generated for one of the requests');
-            }
+            const promptResult = await promptSession.sendMessage("Generate the prompt as requested.");
+            generatedPrompt = promptResult.response.text();
         }
 
-        res.json(images);
+        const imageSession = model.startChat({ generationConfig });
+        const imageResult = await imageSession.sendMessage(generatedPrompt);
+        const candidates = imageResult.response.candidates;
+
+        let imageBuffer;
+        for (const candidate of candidates) {
+            for (const part of candidate.content.parts) {
+                if (part.inlineData && part.inlineData.mimeType.startsWith('image/')) {
+                    imageBuffer = Buffer.from(part.inlineData.data, 'base64');
+                    break;
+                }
+            }
+            if (imageBuffer) break;
+        }
+
+        if (!imageBuffer) {
+            throw new Error('No image generated');
+        }
+
+        res.json({ image: imageBuffer.toString('base64'), prompt: generatedPrompt });
     } catch (error) {
         console.error('Error in /api/generate:', error);
-        res.status(500).send(`Failed to generate images: ${error.message}`);
+        res.status(500).send(`Failed to generate image: ${error.message}`);
     } finally {
         if (filePath) {
             await fs.unlink(filePath).catch(err => console.error('Cleanup error:', err));
